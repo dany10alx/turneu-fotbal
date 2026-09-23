@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "turneu-fotbal"
+version = "0.1.0"
+description = "API REST pentru gestionarea unui turneu de fotbal"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110,<1.0",
+    "alembic>=1.13,<2.0",
+    "pydantic-settings>=2.0,<3.0",
+    "python-dotenv>=1.0,<2.0",
+    "psycopg2-binary>=2.9,<3.0",
+    "SQLAlchemy>=2.0,<3.0",
+    "uvicorn[standard]>=0.29,<1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
