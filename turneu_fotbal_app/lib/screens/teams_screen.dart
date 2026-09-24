@@ -79,6 +79,54 @@ class _TeamsScreenState extends State<TeamsScreen> {
     );
   }
 
+  Widget _buildTeamTile(BuildContext context, TeamProvider provider, team) {
+    return Dismissible(
+      key: ValueKey(team.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: Theme.of(context).colorScheme.errorContainer,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: Icon(Icons.delete,
+            color: Theme.of(context).colorScheme.onErrorContainer),
+      ),
+      confirmDismiss: (_) async {
+        return await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Ștergi echipa?'),
+                content: Text(
+                    '${team.name} și toate meciurile ei vor fi șterse.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Anulează'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Șterge'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+      },
+      onDismissed: (_) async {
+        final success = await provider.removeTeam(team.id);
+        if (!success && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Eroare la ștergerea echipei.')),
+          );
+        }
+      },
+      child: ListTile(
+        dense: true,
+        leading: const Icon(Icons.shield_outlined),
+        title: Text(team.name),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,58 +157,57 @@ class _TeamsScreenState extends State<TeamsScreen> {
             return const Center(child: Text('Nicio echipă adăugată încă.'));
           }
 
+          // Grupăm echipele după group_name, într-o hartă ordonată alfabetic.
+          final Map<String, List<dynamic>> byGroup = {};
+          for (final team in provider.teams) {
+            byGroup.putIfAbsent(team.groupName, () => []).add(team);
+          }
+          final sortedGroupNames = byGroup.keys.toList()..sort();
+
           return RefreshIndicator(
             onRefresh: () => provider.loadTeams(),
-            child: ListView.builder(
-              itemCount: provider.teams.length,
-              itemBuilder: (context, index) {
-                final team = provider.teams[index];
-                return Dismissible(
-                  key: ValueKey(team.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    child: Icon(Icons.delete,
-                        color: Theme.of(context).colorScheme.onErrorContainer),
-                  ),
-                  confirmDismiss: (_) async {
-                    return await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Ștergi echipa?'),
-                            content: Text(
-                                '${team.name} și toate meciurile ei vor fi șterse.'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Anulează'),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Șterge'),
-                              ),
-                            ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: sortedGroupNames.map((groupName) {
+                  final teamsInGroup = byGroup[groupName]!;
+                  return Container(
+                    width: 280,
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondaryContainer,
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(12)),
                           ),
-                        ) ??
-                        false;
-                  },
-                  onDismissed: (_) async {
-                    final success = await provider.removeTeam(team.id);
-                    if (!success && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Eroare la ștergerea echipei.')),
-                      );
-                    }
-                  },
-                  child: ListTile(
-                    leading: const Icon(Icons.shield_outlined),
-                    title: Text(team.name),
-                    subtitle: Text(team.groupName),
-                  ),
-                );
-              },
+                          child: Text(
+                            '$groupName (${teamsInGroup.length})',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        ...teamsInGroup
+                            .map((team) => _buildTeamTile(context, provider, team)),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           );
         },
