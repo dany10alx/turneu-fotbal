@@ -43,6 +43,15 @@ class ApiService {
 
   // ---------- Meciuri ----------
 
+  Future<List<Match>> getMatches() async {
+    final response = await http.get(Uri.parse('$baseUrl/matches/'));
+    if (response.statusCode != 200) {
+      throw ApiException('Nu am putut încărca meciurile (${response.statusCode}).');
+    }
+    final List<dynamic> data = jsonDecode(response.body);
+    return data.map((json) => Match.fromJson(json)).toList();
+  }
+
   Future<Match> createMatch({
     required String homeTeamId,
     required String awayTeamId,

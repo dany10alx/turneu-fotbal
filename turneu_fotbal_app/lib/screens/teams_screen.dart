@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../providers/team_provider.dart';
+import '../providers/team_provider.dart';
 
 class TeamsScreen extends StatefulWidget {
   const TeamsScreen({super.key});
