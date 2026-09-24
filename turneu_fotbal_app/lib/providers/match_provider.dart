@@ -30,12 +30,17 @@ class MatchProvider extends ChangeNotifier {
   }
 
   Future<bool> removeMatch(String matchId) async {
+    final index = _matches.indexWhere((m) => m.id == matchId);
+    if (index == -1) return false;
+
+    final removedMatch = _matches.removeAt(index);
+    notifyListeners();
+
     try {
       await _apiService.deleteMatch(matchId);
-      _matches.removeWhere((m) => m.id == matchId);
-      notifyListeners();
       return true;
     } catch (e) {
+      _matches.insert(index, removedMatch);
       _error = e.toString();
       notifyListeners();
       return false;

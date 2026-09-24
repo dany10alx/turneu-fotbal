@@ -30,12 +30,20 @@ class TeamProvider extends ChangeNotifier {
   }
 
   Future<bool> removeTeam(String teamId) async {
+    final index = _teams.indexWhere((t) => t.id == teamId);
+    if (index == -1) return false;
+
+    // Scoatem echipa din listă IMEDIAT (sincron), ca Dismissible să nu
+    // rămână cu un widget "orfan" în arbore cât timp așteptăm serverul.
+    final removedTeam = _teams.removeAt(index);
+    notifyListeners();
+
     try {
       await _apiService.deleteTeam(teamId);
-      _teams.removeWhere((t) => t.id == teamId);
-      notifyListeners();
       return true;
     } catch (e) {
+      // Eșec -> o punem înapoi la aceeași poziție.
+      _teams.insert(index, removedTeam);
       _error = e.toString();
       notifyListeners();
       return false;
