@@ -213,14 +213,53 @@ class _MatchesScreenState extends State<MatchesScreen> {
             itemCount: provider.matches.length,
             itemBuilder: (context, index) {
               final match = provider.matches[index];
-              return ListTile(
-                title: Text(
-                  '${_teamName(match.homeTeamId)} ${match.homeScore} - ${match.awayScore} ${_teamName(match.awayTeamId)}',
+              return Dismissible(
+                key: ValueKey(match.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20),
+                  child: Icon(Icons.delete,
+                      color: Theme.of(context).colorScheme.onErrorContainer),
                 ),
-                subtitle: Text(match.groupName ?? ''),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _showUpdateScoreDialog(match),
+                confirmDismiss: (_) async {
+                  return await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Ștergi meciul?'),
+                          content: const Text('Această acțiune nu poate fi anulată.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Anulează'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Șterge'),
+                            ),
+                          ],
+                        ),
+                      ) ??
+                      false;
+                },
+                onDismissed: (_) async {
+                  final success = await provider.removeMatch(match.id);
+                  if (!success && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Eroare la ștergerea meciului.')),
+                    );
+                  }
+                },
+                child: ListTile(
+                  title: Text(
+                    '${_teamName(match.homeTeamId)} ${match.homeScore} - ${match.awayScore} ${_teamName(match.awayTeamId)}',
+                  ),
+                  subtitle: Text(match.groupName ?? ''),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showUpdateScoreDialog(match),
+                  ),
                 ),
               );
             },

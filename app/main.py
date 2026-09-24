@@ -44,6 +44,23 @@ def get_teams(db: Session = Depends(get_db)):
     return db.query(Team).all()
 
 
+@app.delete("/teams/{team_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Echipe"])
+def delete_team(team_id: str, db: Session = Depends(get_db)):
+    db_team = db.query(Team).filter(Team.id == team_id).first()
+    if not db_team:
+        raise HTTPException(status_code=404, detail="Echipa nu a fost găsită.")
+
+    # Ștergem întâi meciurile în care echipa apare (gazdă sau oaspete),
+    # ca să nu rămână meciuri orfane sau erori de integritate.
+    db.query(Match).filter(
+        (Match.home_team_id == team_id) | (Match.away_team_id == team_id)
+    ).delete(synchronize_session=False)
+
+    db.delete(db_team)
+    db.commit()
+    return None
+
+
 @app.post("/matches/", response_model=MatchResponse, status_code=status.HTTP_201_CREATED, tags=["Meciuri"])
 def create_match(match: MatchCreate, db: Session = Depends(get_db)):
     home_team = db.query(Team).filter(Team.id == match.home_team_id).first()
@@ -61,6 +78,17 @@ def create_match(match: MatchCreate, db: Session = Depends(get_db)):
 @app.get("/matches/", response_model=list[MatchResponse], tags=["Meciuri"])
 def get_matches(db: Session = Depends(get_db)):
     return db.query(Match).all()
+
+
+@app.delete("/matches/{match_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Meciuri"])
+def delete_match(match_id: str, db: Session = Depends(get_db)):
+    db_match = db.query(Match).filter(Match.id == match_id).first()
+    if not db_match:
+        raise HTTPException(status_code=404, detail="Meciul nu a fost găsit.")
+
+    db.delete(db_match)
+    db.commit()
+    return None
 
 
 @app.put("/matches/{match_id}/score", response_model=MatchResponse, tags=["Meciuri"])

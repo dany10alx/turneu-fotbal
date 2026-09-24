@@ -29,6 +29,19 @@ class TeamProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> removeTeam(String teamId) async {
+    try {
+      await _apiService.deleteTeam(teamId);
+      _teams.removeWhere((t) => t.id == teamId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> addTeam(String name, String groupName) async {
     try {
       final newTeam = await _apiService.createTeam(name, groupName);

@@ -29,6 +29,19 @@ class MatchProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> removeMatch(String matchId) async {
+    try {
+      await _apiService.deleteMatch(matchId);
+      _matches.removeWhere((m) => m.id == matchId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> createMatch({
     required String homeTeamId,
     required String awayTeamId,

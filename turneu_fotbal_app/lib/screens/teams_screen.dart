@@ -115,10 +115,50 @@ class _TeamsScreenState extends State<TeamsScreen> {
               itemCount: provider.teams.length,
               itemBuilder: (context, index) {
                 final team = provider.teams[index];
-                return ListTile(
-                  leading: const Icon(Icons.shield_outlined),
-                  title: Text(team.name),
-                  subtitle: Text(team.groupName),
+                return Dismissible(
+                  key: ValueKey(team.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    child: Icon(Icons.delete,
+                        color: Theme.of(context).colorScheme.onErrorContainer),
+                  ),
+                  confirmDismiss: (_) async {
+                    return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Ștergi echipa?'),
+                            content: Text(
+                                '${team.name} și toate meciurile ei vor fi șterse.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Anulează'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Șterge'),
+                              ),
+                            ],
+                          ),
+                        ) ??
+                        false;
+                  },
+                  onDismissed: (_) async {
+                    final success = await provider.removeTeam(team.id);
+                    if (!success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Eroare la ștergerea echipei.')),
+                      );
+                    }
+                  },
+                  child: ListTile(
+                    leading: const Icon(Icons.shield_outlined),
+                    title: Text(team.name),
+                    subtitle: Text(team.groupName),
+                  ),
                 );
               },
             ),

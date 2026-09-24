@@ -41,6 +41,13 @@ class ApiService {
     return Team.fromJson(jsonDecode(response.body));
   }
 
+  Future<void> deleteTeam(String teamId) async {
+    final response = await http.delete(Uri.parse('$baseUrl/teams/$teamId'));
+    if (response.statusCode != 204) {
+      throw ApiException('Nu am putut șterge echipa (${response.statusCode}).');
+    }
+  }
+
   // ---------- Meciuri ----------
 
   Future<List<Match>> getMatches() async {
@@ -72,6 +79,13 @@ class ApiService {
       throw ApiException('Nu am putut crea meciul (${response.statusCode}).');
     }
     return Match.fromJson(jsonDecode(response.body));
+  }
+
+  Future<void> deleteMatch(String matchId) async {
+    final response = await http.delete(Uri.parse('$baseUrl/matches/$matchId'));
+    if (response.statusCode != 204) {
+      throw ApiException('Nu am putut șterge meciul (${response.statusCode}).');
+    }
   }
 
   Future<Match> updateMatchScore({
