@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 
 import 'providers/team_provider.dart';
 import 'providers/match_provider.dart';
+import 'providers/standings_provider.dart';
 import 'screens/teams_screen.dart';
 import 'screens/matches_screen.dart';
+import 'screens/standings_screen.dart';
 
 void main() {
   runApp(const TurneuFotbalApp());
@@ -19,7 +21,7 @@ class TurneuFotbalApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => TeamProvider()),
         ChangeNotifierProvider(create: (_) => MatchProvider()),
-        // Aici vom adăuga și StandingsProvider la pasul următor.
+        ChangeNotifierProvider(create: (_) => StandingsProvider()),
       ],
       child: MaterialApp(
         title: 'Turneu Fotbal',
@@ -46,6 +48,7 @@ class _HomeShellState extends State<HomeShell> {
   final _screens = const [
     TeamsScreen(),
     MatchesScreen(),
+    StandingsScreen(),
   ];
 
   @override
@@ -60,8 +63,11 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(icon: Icon(Icons.shield), label: 'Echipe'),
           NavigationDestination(
               icon: Icon(Icons.sports_soccer), label: 'Meciuri'),
+          NavigationDestination(
+              icon: Icon(Icons.leaderboard), label: 'Clasament'),
         ],
       ),
     );
   }
 }
+

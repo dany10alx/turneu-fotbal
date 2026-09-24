@@ -1,15 +1,14 @@
-// NOTĂ: valorile enum-ului de mai jos sunt o presupunere rezonabilă
-// (SCHEDULED, LIVE, FINISHED). Verifică în models.py ce valori are
-// MatchStatus și ajustează lista + parsarea dacă diferă.
+// Valorile enum-ului corespund exact celor din models.py (MatchStatus):
+// "scheduled", "live", "finished" — cu litere mici.
 enum MatchStatus { scheduled, live, finished }
 
 MatchStatus matchStatusFromString(String value) {
-  switch (value.toUpperCase()) {
-    case 'LIVE':
+  switch (value.toLowerCase()) {
+    case 'live':
       return MatchStatus.live;
-    case 'FINISHED':
+    case 'finished':
       return MatchStatus.finished;
-    case 'SCHEDULED':
+    case 'scheduled':
     default:
       return MatchStatus.scheduled;
   }
@@ -18,11 +17,11 @@ MatchStatus matchStatusFromString(String value) {
 String matchStatusToString(MatchStatus status) {
   switch (status) {
     case MatchStatus.live:
-      return 'LIVE';
+      return 'live';
     case MatchStatus.finished:
-      return 'FINISHED';
+      return 'finished';
     case MatchStatus.scheduled:
-      return 'SCHEDULED';
+      return 'scheduled';
   }
 }
 
