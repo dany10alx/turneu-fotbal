@@ -22,11 +22,6 @@ app = FastAPI(
 )
 
 
-@app.get("/health", tags=["Sistem"])
-def health_check():
-    return {"status": "ok"}
-
-
 def get_db():
     db = SessionLocal()
     try:
@@ -61,6 +56,11 @@ def create_match(match: MatchCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_match)
     return db_match
+
+
+@app.get("/matches/", response_model=list[MatchResponse], tags=["Meciuri"])
+def get_matches(db: Session = Depends(get_db)):
+    return db.query(Match).all()
 
 
 @app.put("/matches/{match_id}/score", response_model=MatchResponse, tags=["Meciuri"])

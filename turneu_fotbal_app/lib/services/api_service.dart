@@ -14,7 +14,7 @@ class ApiException implements Exception {
 
 class ApiService {
   // ÎNLOCUIEȘTE cu domeniul tău Railway (fără slash la final).
-  static const String baseUrl = 'https://https://turneu-fotbal-production.up.railway.app';
+  static const String baseUrl = 'https://turneu-fotbal-production.up.railway.app';
 
   Map<String, String> get _headers => {'Content-Type': 'application/json'};
 
