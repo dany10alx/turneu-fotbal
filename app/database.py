@@ -11,8 +11,16 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 def get_database_url() -> str | URL:
     database_url = os.getenv("DATABASE_URL")
     if database_url:
-        # Railway poate furniza URL-ul cu schema legacy postgres://.
-        return database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        # Railway poate furniza URL-ul cu schema legacy postgres://,
+        # sau cu schema modernă postgresql:// (fără driver specificat).
+        # În ambele cazuri, forțăm explicit driverul psycopg2, altfel
+        # SQLAlchemy 2.x alege implicit driverul psycopg (v3), care nu
+        # e instalat.
+        if database_url.startswith("postgres://"):
+            return database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        if database_url.startswith("postgresql://") and "+" not in database_url.split("://", 1)[0]:
+            return database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return database_url
 
     database_name = os.getenv("DB_NAME")
     if database_name:
