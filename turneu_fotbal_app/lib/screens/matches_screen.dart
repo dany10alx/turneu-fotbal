@@ -31,6 +31,99 @@ class _MatchesScreenState extends State<MatchesScreen> {
     super.dispose();
   }
 
+  Future<void> _generateRoundRobin() async {
+    final teams = context.read<TeamProvider>().teams;
+
+    // Grupăm echipele după grupă.
+    final Map<String, List<dynamic>> byGroup = {};
+    for (final team in teams) {
+      byGroup.putIfAbsent(team.groupName, () => []).add(team);
+    }
+
+    // Construim toate perechile (fiecare cu fiecare, o singură dată),
+    // separat pentru fiecare grupă.
+    final List<(dynamic, dynamic, String)> pairs = [];
+    for (final entry in byGroup.entries) {
+      final groupTeams = entry.value;
+      for (var i = 0; i < groupTeams.length; i++) {
+        for (var j = i + 1; j < groupTeams.length; j++) {
+          pairs.add((groupTeams[i], groupTeams[j], entry.key));
+        }
+      }
+    }
+
+    if (pairs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Ai nevoie de cel puțin 2 echipe în aceeași grupă.')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Generează meciurile?'),
+        content: Text(
+          'Se vor crea ${pairs.length} meciuri noi (fiecare cu fiecare, '
+          'separat pe grupă). Dacă ai generat deja meciurile o dată, rularea '
+          'din nou va crea duplicate.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Anulează'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Generează'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Se generează meciurile...'),
+          ],
+        ),
+      ),
+    );
+
+    final matchProvider = context.read<MatchProvider>();
+    int successCount = 0;
+    for (final (home, away, groupName) in pairs) {
+      final success = await matchProvider.createMatch(
+        homeTeamId: home.id,
+        awayTeamId: away.id,
+        groupName: groupName,
+      );
+      if (success) successCount++;
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context); // închide dialogul de progres
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          successCount == pairs.length
+              ? '$successCount meciuri generate cu succes.'
+              : '$successCount din ${pairs.length} meciuri create (unele au eșuat).',
+        ),
+      ),
+    );
+  }
+
   void _showAddMatchDialog() {
     final teams = context.read<TeamProvider>().teams;
 
@@ -182,7 +275,16 @@ class _MatchesScreenState extends State<MatchesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Meciuri')),
+      appBar: AppBar(
+        title: const Text('Meciuri'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'Generează meciuri (fiecare cu fiecare)',
+            onPressed: _generateRoundRobin,
+          ),
+        ],
+      ),
       body: Consumer<MatchProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.matches.isEmpty) {
