@@ -9,6 +9,7 @@ import 'screens/teams_screen.dart';
 import 'screens/matches_screen.dart';
 import 'screens/standings_screen.dart';
 import 'screens/knockout_screen.dart';
+import 'screens/about_screen.dart';
 
 void main() {
   runApp(const TurneuFotbalApp());
@@ -53,6 +54,7 @@ class _HomeShellState extends State<HomeShell> {
     MatchesScreen(),
     StandingsScreen(),
     KnockoutScreen(),
+    AboutScreen(),
   ];
 
   @override
@@ -71,6 +73,8 @@ class _HomeShellState extends State<HomeShell> {
               icon: Icon(Icons.leaderboard), label: 'Clasament'),
           NavigationDestination(
               icon: Icon(Icons.emoji_events), label: 'Eliminatorii'),
+          NavigationDestination(
+              icon: Icon(Icons.info_outline), label: 'Despre'),
         ],
       ),
     );
