@@ -272,6 +272,58 @@ class _MatchesScreenState extends State<MatchesScreen> {
     return match.isNotEmpty ? match.first.name : '?';
   }
 
+  Widget _buildMatchTile(BuildContext context, MatchProvider provider, Match match) {
+    return Dismissible(
+      key: ValueKey(match.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: Theme.of(context).colorScheme.errorContainer,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: Icon(Icons.delete,
+            color: Theme.of(context).colorScheme.onErrorContainer),
+      ),
+      confirmDismiss: (_) async {
+        return await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Ștergi meciul?'),
+                content: const Text('Această acțiune nu poate fi anulată.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Anulează'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Șterge'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+      },
+      onDismissed: (_) async {
+        final success = await provider.removeMatch(match.id);
+        if (!success && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Eroare la ștergerea meciului.')),
+          );
+        }
+      },
+      child: ListTile(
+        dense: true,
+        title: Text(
+          '${_teamName(match.homeTeamId)} ${match.homeScore} - ${match.awayScore} ${_teamName(match.awayTeamId)}',
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.edit, size: 20),
+          onPressed: () => _showUpdateScoreDialog(match),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -311,60 +363,55 @@ class _MatchesScreenState extends State<MatchesScreen> {
             return const Center(child: Text('Niciun meci adăugat încă.'));
           }
 
-          return ListView.builder(
-            itemCount: provider.matches.length,
-            itemBuilder: (context, index) {
-              final match = provider.matches[index];
-              return Dismissible(
-                key: ValueKey(match.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  child: Icon(Icons.delete,
-                      color: Theme.of(context).colorScheme.onErrorContainer),
-                ),
-                confirmDismiss: (_) async {
-                  return await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Ștergi meciul?'),
-                          content: const Text('Această acțiune nu poate fi anulată.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Anulează'),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Șterge'),
-                            ),
-                          ],
+          // Grupăm meciurile după group_name, într-o hartă ordonată alfabetic.
+          final Map<String, List<Match>> byGroup = {};
+          for (final match in provider.matches) {
+            final key = match.groupName ?? 'Fără grupă';
+            byGroup.putIfAbsent(key, () => []).add(match);
+          }
+          final sortedGroupNames = byGroup.keys.toList()..sort();
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: sortedGroupNames.map((groupName) {
+                final matchesInGroup = byGroup[groupName]!;
+                return Container(
+                  width: 320,
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12)),
                         ),
-                      ) ??
-                      false;
-                },
-                onDismissed: (_) async {
-                  final success = await provider.removeMatch(match.id);
-                  if (!success && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Eroare la ștergerea meciului.')),
-                    );
-                  }
-                },
-                child: ListTile(
-                  title: Text(
-                    '${_teamName(match.homeTeamId)} ${match.homeScore} - ${match.awayScore} ${_teamName(match.awayTeamId)}',
+                        child: Text(
+                          '$groupName (${matchesInGroup.length})',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      ...matchesInGroup
+                          .map((match) => _buildMatchTile(context, provider, match)),
+                    ],
                   ),
-                  subtitle: Text(match.groupName ?? ''),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _showUpdateScoreDialog(match),
-                  ),
-                ),
-              );
-            },
+                );
+              }).toList(),
+            ),
           );
         },
       ),
