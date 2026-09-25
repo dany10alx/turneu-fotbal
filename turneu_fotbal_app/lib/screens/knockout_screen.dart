@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/match.dart';
 import '../providers/knockout_provider.dart';
 import '../providers/team_provider.dart';
+import '../widgets/team_avatar.dart';
 
 class KnockoutScreen extends StatefulWidget {
   const KnockoutScreen({super.key});
@@ -13,6 +14,8 @@ class KnockoutScreen extends StatefulWidget {
 }
 
 class _KnockoutScreenState extends State<KnockoutScreen> {
+  bool _championDialogShown = false;
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +28,43 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
     final teams = context.read<TeamProvider>().teams;
     final match = teams.where((t) => t.id == teamId);
     return match.isNotEmpty ? match.first.name : '?';
+  }
+
+  String? _championName(List<Match> matches) {
+    final finalMatches = matches.where((m) => m.round == 'final');
+    if (finalMatches.isEmpty) return null;
+    final f = finalMatches.first;
+    if (f.status != MatchStatus.finished || f.homeScore == f.awayScore) {
+      return null;
+    }
+    final winnerId = f.homeScore > f.awayScore ? f.homeTeamId : f.awayTeamId;
+    return _teamName(winnerId);
+  }
+
+  void _maybeShowChampionDialog(String championName) {
+    if (_championDialogShown) return;
+    _championDialogShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(Icons.emoji_events, color: Colors.amber, size: 48),
+          title: const Text('Avem campion!'),
+          content: Text(
+            '🏆 $championName 🏆\nFelicitări pentru câștigarea turneului!',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Super!'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Future<void> _generateBracket() async {
@@ -185,6 +225,8 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
             children: [
               Row(
                 children: [
+                  TeamAvatar(teamName: _teamName(match.homeTeamId), size: 22),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       _teamName(match.homeTeamId),
@@ -202,6 +244,8 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
               const SizedBox(height: 4),
               Row(
                 children: [
+                  TeamAvatar(teamName: _teamName(match.awayTeamId), size: 22),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       _teamName(match.awayTeamId),
@@ -270,10 +314,41 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
             matches.sort((a, b) => (a.bracketSlot ?? 0).compareTo(b.bracketSlot ?? 0));
           }
 
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          final champion = _championName(provider.matches);
+          if (champion != null) {
+            _maybeShowChampionDialog(champion);
+          }
+
+          return Column(
+            children: [
+              if (champion != null)
+                Container(
+                  width: double.infinity,
+                  color: Colors.amber.shade100,
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          'Campion: $champion',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
               children: roundsPresent.map((round) {
                 final matches = byRound[round]!;
                 return Container(
@@ -303,7 +378,10 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
                   ),
                 );
               }).toList(),
-            ),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),

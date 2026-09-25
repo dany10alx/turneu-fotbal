@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/team_provider.dart';
+import '../widgets/team_avatar.dart';
 
 class TeamsScreen extends StatefulWidget {
   const TeamsScreen({super.key});
@@ -121,7 +122,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
       },
       child: ListTile(
         dense: true,
-        leading: const Icon(Icons.shield_outlined),
+        leading: TeamAvatar(teamName: team.name, size: 32),
         title: Text(team.name),
       ),
     );

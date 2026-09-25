@@ -27,7 +27,7 @@ class TurneuFotbalApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => KnockoutProvider()),
       ],
       child: MaterialApp(
-        title: 'Turneu Fotbal',
+        title: 'Turneul Campionilor by dany',
         theme: ThemeData(
           colorSchemeSeed: Colors.green,
           useMaterial3: true,

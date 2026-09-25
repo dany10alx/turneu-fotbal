@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/match.dart';
 import '../providers/match_provider.dart';
 import '../providers/team_provider.dart';
+import '../widgets/team_avatar.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -313,6 +314,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
       },
       child: ListTile(
         dense: true,
+        leading: TeamAvatar(teamName: _teamName(match.homeTeamId), size: 26),
         title: Text(
           '${_teamName(match.homeTeamId)} ${match.homeScore} - ${match.awayScore} ${_teamName(match.awayTeamId)}',
         ),
