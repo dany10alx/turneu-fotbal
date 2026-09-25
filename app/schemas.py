@@ -37,6 +37,8 @@ class MatchResponse(BaseModel):
     away_score: int
     status: MatchStatus
     group_name: Optional[str]
+    round: Optional[str] = None
+    bracket_slot: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 

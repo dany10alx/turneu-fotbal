@@ -2,6 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine
+from .knockout import ROUND_ORDER, advance_bracket, generate_bracket
 from .models import Match, Team
 from .schemas import (
     MatchCreate,
@@ -77,7 +78,9 @@ def create_match(match: MatchCreate, db: Session = Depends(get_db)):
 
 @app.get("/matches/", response_model=list[MatchResponse], tags=["Meciuri"])
 def get_matches(db: Session = Depends(get_db)):
-    return db.query(Match).all()
+    # Doar meciurile de grupă; cele din faza eliminatorie au propriile
+    # endpoint-uri (/knockout/bracket), ca să nu se amestece pe ecran.
+    return db.query(Match).filter(Match.round.is_(None)).all()
 
 
 @app.delete("/matches/{match_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Meciuri"])
@@ -102,7 +105,35 @@ def update_match_score(match_id: str, score_data: MatchUpdateScore, db: Session 
     db_match.status = score_data.status
     db.commit()
     db.refresh(db_match)
+
+    # Dacă acest meci face parte din faza eliminatorie și s-a terminat,
+    # verificăm dacă putem genera automat meciul din runda următoare.
+    if db_match.round and db_match.status.value == "finished":
+        advance_bracket(db, db_match)
+
     return db_match
+
+
+@app.post("/knockout/generate", response_model=list[MatchResponse], tags=["Faza eliminatorie"])
+def generate_knockout_bracket(db: Session = Depends(get_db)):
+    try:
+        return generate_bracket(db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/knockout/bracket", response_model=list[MatchResponse], tags=["Faza eliminatorie"])
+def get_knockout_bracket(db: Session = Depends(get_db)):
+    matches = db.query(Match).filter(Match.round.isnot(None)).all()
+    matches.sort(key=lambda m: (ROUND_ORDER.index(m.round), m.bracket_slot))
+    return matches
+
+
+@app.delete("/knockout", status_code=status.HTTP_204_NO_CONTENT, tags=["Faza eliminatorie"])
+def delete_knockout_bracket(db: Session = Depends(get_db)):
+    db.query(Match).filter(Match.round.isnot(None)).delete(synchronize_session=False)
+    db.commit()
+    return None
 
 
 @app.get("/standings/{group_name}", response_model=list[TeamStanding], tags=["Clasament"])
