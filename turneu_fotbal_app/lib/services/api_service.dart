@@ -109,6 +109,37 @@ class ApiService {
     return Match.fromJson(jsonDecode(response.body));
   }
 
+  // ---------- Faza eliminatorie ----------
+
+  Future<List<Match>> generateKnockoutBracket() async {
+    final response = await http.post(Uri.parse('$baseUrl/knockout/generate'));
+    if (response.statusCode != 200) {
+      String detail = 'Eroare (${response.statusCode}).';
+      try {
+        detail = jsonDecode(response.body)['detail'] as String;
+      } catch (_) {}
+      throw ApiException(detail);
+    }
+    final List<dynamic> data = jsonDecode(response.body);
+    return data.map((json) => Match.fromJson(json)).toList();
+  }
+
+  Future<List<Match>> getKnockoutBracket() async {
+    final response = await http.get(Uri.parse('$baseUrl/knockout/bracket'));
+    if (response.statusCode != 200) {
+      throw ApiException('Nu am putut încărca tabloul (${response.statusCode}).');
+    }
+    final List<dynamic> data = jsonDecode(response.body);
+    return data.map((json) => Match.fromJson(json)).toList();
+  }
+
+  Future<void> deleteKnockoutBracket() async {
+    final response = await http.delete(Uri.parse('$baseUrl/knockout'));
+    if (response.statusCode != 204) {
+      throw ApiException('Nu am putut șterge tabloul (${response.statusCode}).');
+    }
+  }
+
   // ---------- Clasament ----------
 
   Future<List<TeamStanding>> getGroupStandings(String groupName) async {

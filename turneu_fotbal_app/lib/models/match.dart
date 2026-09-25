@@ -25,6 +25,20 @@ String matchStatusToString(MatchStatus status) {
   }
 }
 
+const List<String> kRoundOrder = [
+  'round_of_16',
+  'quarterfinal',
+  'semifinal',
+  'final',
+];
+
+const Map<String, String> kRoundDisplayNames = {
+  'round_of_16': 'Optimi de finală',
+  'quarterfinal': 'Sferturi de finală',
+  'semifinal': 'Semifinale',
+  'final': 'Finală',
+};
+
 class Match {
   final String id;
   final String homeTeamId;
@@ -34,6 +48,8 @@ class Match {
   final MatchStatus status;
   final String? groupName;
   final DateTime? scheduledAt;
+  final String? round; // null pentru meciurile de grupă
+  final int? bracketSlot;
 
   Match({
     required this.id,
@@ -44,6 +60,8 @@ class Match {
     required this.status,
     this.groupName,
     this.scheduledAt,
+    this.round,
+    this.bracketSlot,
   });
 
   factory Match.fromJson(Map<String, dynamic> json) {
@@ -55,6 +73,8 @@ class Match {
       awayScore: json['away_score'] as int,
       status: matchStatusFromString(json['status'] as String),
       groupName: json['group_name'] as String?,
+      round: json['round'] as String?,
+      bracketSlot: json['bracket_slot'] as int?,
     );
   }
 

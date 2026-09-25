@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'providers/team_provider.dart';
 import 'providers/match_provider.dart';
 import 'providers/standings_provider.dart';
+import 'providers/knockout_provider.dart';
 import 'screens/teams_screen.dart';
 import 'screens/matches_screen.dart';
 import 'screens/standings_screen.dart';
+import 'screens/knockout_screen.dart';
 
 void main() {
   runApp(const TurneuFotbalApp());
@@ -22,6 +24,7 @@ class TurneuFotbalApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TeamProvider()),
         ChangeNotifierProvider(create: (_) => MatchProvider()),
         ChangeNotifierProvider(create: (_) => StandingsProvider()),
+        ChangeNotifierProvider(create: (_) => KnockoutProvider()),
       ],
       child: MaterialApp(
         title: 'Turneu Fotbal',
@@ -49,6 +52,7 @@ class _HomeShellState extends State<HomeShell> {
     TeamsScreen(),
     MatchesScreen(),
     StandingsScreen(),
+    KnockoutScreen(),
   ];
 
   @override
@@ -65,9 +69,10 @@ class _HomeShellState extends State<HomeShell> {
               icon: Icon(Icons.sports_soccer), label: 'Meciuri'),
           NavigationDestination(
               icon: Icon(Icons.leaderboard), label: 'Clasament'),
+          NavigationDestination(
+              icon: Icon(Icons.emoji_events), label: 'Eliminatorii'),
         ],
       ),
     );
   }
 }
-
