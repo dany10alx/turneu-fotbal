@@ -30,6 +30,7 @@ const List<String> kRoundOrder = [
   'quarterfinal',
   'semifinal',
   'final',
+  'third_place',
 ];
 
 const Map<String, String> kRoundDisplayNames = {
@@ -37,6 +38,7 @@ const Map<String, String> kRoundDisplayNames = {
   'quarterfinal': 'Sferturi de finală',
   'semifinal': 'Semifinale',
   'final': 'Finală',
+  'third_place': 'Finala mică (locul 3)',
 };
 
 class Match {

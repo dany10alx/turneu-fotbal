@@ -2,7 +2,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .database import Base, SessionLocal, engine
-from .knockout import ROUND_ORDER, advance_bracket, generate_bracket
+from .knockout import advance_bracket, generate_bracket, round_sort_index
 from .models import Match, Team
 from .schemas import (
     MatchCreate,
@@ -125,7 +125,7 @@ def generate_knockout_bracket(db: Session = Depends(get_db)):
 @app.get("/knockout/bracket", response_model=list[MatchResponse], tags=["Faza eliminatorie"])
 def get_knockout_bracket(db: Session = Depends(get_db)):
     matches = db.query(Match).filter(Match.round.isnot(None)).all()
-    matches.sort(key=lambda m: (ROUND_ORDER.index(m.round), m.bracket_slot))
+    matches.sort(key=lambda m: (round_sort_index(m.round), m.bracket_slot))
     return matches
 
 

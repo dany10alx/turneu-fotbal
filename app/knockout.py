@@ -25,7 +25,16 @@ ROUND_DISPLAY_NAMES = {
     "quarterfinal": "Sferturi de finală",
     "semifinal": "Semifinale",
     "final": "Finală",
+    "third_place": "Finala mică (locul 3)",
 }
+
+
+def round_sort_index(round_name: str) -> int:
+    """Ordinea de afișare a rundelor. Finala mică e afișată imediat după
+    finală, deși nu face parte din lanțul principal de avansare."""
+    if round_name == "third_place":
+        return len(ROUND_ORDER)
+    return ROUND_ORDER.index(round_name)
 
 # Numărul de grupe -> mărimea tabloului (câte echipe intră în prima rundă).
 BRACKET_SIZE_BY_GROUPS = {2: 4, 3: 8, 4: 8, 5: 16, 6: 16, 7: 16, 8: 16}
@@ -173,7 +182,7 @@ def advance_bracket(db: Session, finished_match: Match) -> Match | None:
         return None  # meci de grupă, nu ne privește aici
 
     current_round = finished_match.round
-    if current_round == "final":
+    if current_round in ("final", "third_place"):
         return None  # nu mai există rundă următoare
 
     next_round = ROUND_ORDER[ROUND_ORDER.index(current_round) + 1]
@@ -194,6 +203,13 @@ def advance_bracket(db: Session, finished_match: Match) -> Match | None:
             return m.away_team_id
         return None  # egalitate — faza eliminatorie are nevoie de un câștigător
 
+    def loser_id(m: Match) -> str | None:
+        if m.home_score > m.away_score:
+            return m.away_team_id
+        if m.away_score > m.home_score:
+            return m.home_team_id
+        return None
+
     lower = finished_match if finished_match.bracket_slot % 2 == 0 else sibling
     higher = sibling if finished_match.bracket_slot % 2 == 0 else finished_match
 
@@ -204,6 +220,29 @@ def advance_bracket(db: Session, finished_match: Match) -> Match | None:
         # avansa automat. Meciul rămâne cu scorul de egalitate până e
         # corectat manual cu un rezultat decisiv.
         return None
+
+    # Dacă tocmai s-au încheiat semifinalele, generăm și finala mică
+    # (locul 3), între cei doi perdanți — independent de finala mare.
+    if current_round == "semifinal":
+        existing_third_place = (
+            db.query(Match)
+            .filter(Match.round == "third_place", Match.bracket_slot == 0)
+            .first()
+        )
+        if not existing_third_place:
+            home_loser = loser_id(lower)
+            away_loser = loser_id(higher)
+            if home_loser and away_loser:
+                db.add(
+                    Match(
+                        home_team_id=home_loser,
+                        away_team_id=away_loser,
+                        group_name=None,
+                        status=MatchStatus.SCHEDULED,
+                        round="third_place",
+                        bracket_slot=0,
+                    )
+                )
 
     next_slot = finished_match.bracket_slot // 2
     already_exists = (
