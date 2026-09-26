@@ -1,4 +1,20 @@
-// Valorile enum-ului corespund exact celor din models.py (MatchStatus):
+const List<String> kRoundOrder = [
+  'round_of_16',
+  'quarterfinal',
+  'semifinal',
+  'final',
+  'third_place',
+];
+
+const Map<String, String> kRoundDisplayNames = {
+  'round_of_16': 'Optimi de finală',
+  'quarterfinal': 'Sferturi de finală',
+  'semifinal': 'Semifinale',
+  'final': 'Finală',
+  'third_place': 'Finala mică (locul 3)',
+};
+
+// Valorile enum-ului corespund celor stocate în baza de date locală:
 // "scheduled", "live", "finished" — cu litere mici.
 enum MatchStatus { scheduled, live, finished }
 
@@ -25,22 +41,6 @@ String matchStatusToString(MatchStatus status) {
   }
 }
 
-const List<String> kRoundOrder = [
-  'round_of_16',
-  'quarterfinal',
-  'semifinal',
-  'final',
-  'third_place',
-];
-
-const Map<String, String> kRoundDisplayNames = {
-  'round_of_16': 'Optimi de finală',
-  'quarterfinal': 'Sferturi de finală',
-  'semifinal': 'Semifinale',
-  'final': 'Finală',
-  'third_place': 'Finala mică (locul 3)',
-};
-
 class Match {
   final String id;
   final String homeTeamId;
@@ -49,7 +49,6 @@ class Match {
   final int awayScore;
   final MatchStatus status;
   final String? groupName;
-  final DateTime? scheduledAt;
   final String? round; // null pentru meciurile de grupă
   final int? bracketSlot;
 
@@ -61,50 +60,53 @@ class Match {
     required this.awayScore,
     required this.status,
     this.groupName,
-    this.scheduledAt,
     this.round,
     this.bracketSlot,
   });
 
-  factory Match.fromJson(Map<String, dynamic> json) {
+  factory Match.fromMap(Map<String, dynamic> map) {
     return Match(
-      id: json['id'] as String,
-      homeTeamId: json['home_team_id'] as String,
-      awayTeamId: json['away_team_id'] as String,
-      homeScore: json['home_score'] as int,
-      awayScore: json['away_score'] as int,
-      status: matchStatusFromString(json['status'] as String),
-      groupName: json['group_name'] as String?,
-      round: json['round'] as String?,
-      bracketSlot: json['bracket_slot'] as int?,
+      id: map['id'] as String,
+      homeTeamId: map['home_team_id'] as String,
+      awayTeamId: map['away_team_id'] as String,
+      homeScore: map['home_score'] as int,
+      awayScore: map['away_score'] as int,
+      status: matchStatusFromString(map['status'] as String),
+      groupName: map['group_name'] as String?,
+      round: map['round'] as String?,
+      bracketSlot: map['bracket_slot'] as int?,
     );
   }
 
-  // Pentru crearea unui meci nou (POST /matches/).
-  static Map<String, dynamic> toCreateJson({
-    required String homeTeamId,
-    required String awayTeamId,
-    required String groupName,
-    DateTime? scheduledAt,
-  }) {
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'home_team_id': homeTeamId,
       'away_team_id': awayTeamId,
-      'group_name': groupName,
-      if (scheduledAt != null) 'scheduled_at': scheduledAt.toIso8601String(),
-    };
-  }
-
-  // Pentru actualizarea scorului (PUT /matches/{id}/score).
-  static Map<String, dynamic> toUpdateScoreJson({
-    required int homeScore,
-    required int awayScore,
-    MatchStatus status = MatchStatus.finished,
-  }) {
-    return {
       'home_score': homeScore,
       'away_score': awayScore,
       'status': matchStatusToString(status),
+      'group_name': groupName,
+      'round': round,
+      'bracket_slot': bracketSlot,
     };
+  }
+
+  Match copyWith({
+    int? homeScore,
+    int? awayScore,
+    MatchStatus? status,
+  }) {
+    return Match(
+      id: id,
+      homeTeamId: homeTeamId,
+      awayTeamId: awayTeamId,
+      homeScore: homeScore ?? this.homeScore,
+      awayScore: awayScore ?? this.awayScore,
+      status: status ?? this.status,
+      groupName: groupName,
+      round: round,
+      bracketSlot: bracketSlot,
+    );
   }
 }

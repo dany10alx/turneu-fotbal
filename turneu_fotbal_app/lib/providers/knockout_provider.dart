@@ -1,27 +1,26 @@
 import 'package:flutter/foundation.dart';
 
-import '../models/match.dart';
-import '../services/api_service.dart';
+import '../models/team.dart';
+import '../services/local_repository.dart';
 
-class KnockoutProvider extends ChangeNotifier {
-  final ApiService _apiService = ApiService();
+class TeamProvider extends ChangeNotifier {
+  final LocalRepository _repo = LocalRepository();
 
-  List<Match> _matches = [];
+  List<Team> _teams = [];
   bool _isLoading = false;
   String? _error;
 
-  List<Match> get matches => _matches;
+  List<Team> get teams => _teams;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get hasBracket => _matches.isNotEmpty;
 
-  Future<void> loadBracket() async {
+  Future<void> loadTeams() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _matches = await _apiService.getKnockoutBracket();
+      _teams = await _repo.getTeams();
     } catch (e) {
       _error = e.toString();
     }
@@ -30,45 +29,31 @@ class KnockoutProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> generateBracket() async {
-    _error = null;
+  Future<bool> removeTeam(String teamId) async {
+    final index = _teams.indexWhere((t) => t.id == teamId);
+    if (index == -1) return false;
+
+    // Scoatem echipa din listă IMEDIAT (sincron), ca Dismissible să nu
+    // rămână cu un widget "orfan" în arbore cât timp așteptăm serverul.
+    final removedTeam = _teams.removeAt(index);
+    notifyListeners();
+
     try {
-      await _apiService.generateKnockoutBracket();
-      await loadBracket();
+      await _repo.deleteTeam(teamId);
       return true;
     } catch (e) {
+      // Eșec -> o punem înapoi la aceeași poziție.
+      _teams.insert(index, removedTeam);
       _error = e.toString();
       notifyListeners();
       return false;
     }
   }
 
-  Future<bool> updateScore({
-    required String matchId,
-    required int homeScore,
-    required int awayScore,
-  }) async {
+  Future<bool> addTeam(String name, String groupName) async {
     try {
-      await _apiService.updateMatchScore(
-        matchId: matchId,
-        homeScore: homeScore,
-        awayScore: awayScore,
-      );
-      // Reîncărcăm tot tabloul, ca să vedem imediat și meciul din runda
-      // următoare, dacă a fost generat automat.
-      await loadBracket();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> resetBracket() async {
-    try {
-      await _apiService.deleteKnockoutBracket();
-      _matches = [];
+      final newTeam = await _repo.createTeam(name, groupName);
+      _teams.add(newTeam);
       notifyListeners();
       return true;
     } catch (e) {

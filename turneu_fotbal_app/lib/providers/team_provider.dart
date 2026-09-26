@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/team.dart';
-import '../services/api_service.dart';
+import '../services/local_repository.dart';
 
 class TeamProvider extends ChangeNotifier {
-  final ApiService _apiService = ApiService();
+  final LocalRepository _repo = LocalRepository();
 
   List<Team> _teams = [];
   bool _isLoading = false;
@@ -20,7 +20,7 @@ class TeamProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _teams = await _apiService.getTeams();
+      _teams = await _repo.getTeams();
     } catch (e) {
       _error = e.toString();
     }
@@ -39,7 +39,7 @@ class TeamProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _apiService.deleteTeam(teamId);
+      await _repo.deleteTeam(teamId);
       return true;
     } catch (e) {
       // Eșec -> o punem înapoi la aceeași poziție.
@@ -52,7 +52,7 @@ class TeamProvider extends ChangeNotifier {
 
   Future<bool> addTeam(String name, String groupName) async {
     try {
-      final newTeam = await _apiService.createTeam(name, groupName);
+      final newTeam = await _repo.createTeam(name, groupName);
       _teams.add(newTeam);
       notifyListeners();
       return true;

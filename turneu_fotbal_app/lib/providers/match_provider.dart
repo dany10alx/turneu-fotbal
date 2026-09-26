@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/match.dart';
-import '../services/api_service.dart';
+import '../services/local_repository.dart';
 
 class MatchProvider extends ChangeNotifier {
-  final ApiService _apiService = ApiService();
+  final LocalRepository _repo = LocalRepository();
 
   List<Match> _matches = [];
   bool _isLoading = false;
@@ -20,7 +20,7 @@ class MatchProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _matches = await _apiService.getMatches();
+      _matches = await _repo.getMatches();
     } catch (e) {
       _error = e.toString();
     }
@@ -37,7 +37,7 @@ class MatchProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _apiService.deleteMatch(matchId);
+      await _repo.deleteMatch(matchId);
       return true;
     } catch (e) {
       _matches.insert(index, removedMatch);
@@ -53,7 +53,7 @@ class MatchProvider extends ChangeNotifier {
     required String groupName,
   }) async {
     try {
-      final newMatch = await _apiService.createMatch(
+      final newMatch = await _repo.createMatch(
         homeTeamId: homeTeamId,
         awayTeamId: awayTeamId,
         groupName: groupName,
@@ -74,7 +74,7 @@ class MatchProvider extends ChangeNotifier {
     required int awayScore,
   }) async {
     try {
-      final updated = await _apiService.updateMatchScore(
+      final updated = await _repo.updateMatchScore(
         matchId: matchId,
         homeScore: homeScore,
         awayScore: awayScore,

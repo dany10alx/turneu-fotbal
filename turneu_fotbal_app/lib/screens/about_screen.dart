@@ -107,7 +107,7 @@ class AboutScreen extends StatelessWidget {
           ]),
 
           section('Sfaturi generale', [
-            bullet('Toate datele sunt salvate pe server — poți închide și redeschide aplicația fără să pierzi nimic.'),
+            bullet('Toate datele sunt salvate local, direct pe acest dispozitiv — poți închide și redeschide aplicația fără să pierzi nimic. Datele nu se sincronizează cu alte dispozitive — fiecare instalare are propriul turneu, independent.'),
             bullet('Fiecare echipă are un logo colorat generat automat, pe baza numelui.'),
           ]),
 

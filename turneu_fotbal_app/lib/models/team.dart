@@ -9,17 +9,17 @@ class Team {
     required this.groupName,
   });
 
-  factory Team.fromJson(Map<String, dynamic> json) {
+  factory Team.fromMap(Map<String, dynamic> map) {
     return Team(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      groupName: json['group_name'] as String? ?? 'Grupa A',
+      id: map['id'] as String,
+      name: map['name'] as String,
+      groupName: map['group_name'] as String? ?? 'Grupa A',
     );
   }
 
-  // Pentru crearea unei echipe noi (POST /teams/) - nu trimitem 'id'.
-  Map<String, dynamic> toCreateJson() {
+  Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'name': name,
       'group_name': groupName,
     };

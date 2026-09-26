@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/standing.dart';
-import '../services/api_service.dart';
+import '../services/local_repository.dart';
 
 class StandingsProvider extends ChangeNotifier {
-  final ApiService _apiService = ApiService();
+  final LocalRepository _repo = LocalRepository();
 
   List<TeamStanding> _standings = [];
   bool _isLoading = false;
@@ -23,7 +23,7 @@ class StandingsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _standings = await _apiService.getGroupStandings(groupName);
+      _standings = await _repo.getGroupStandings(groupName);
     } catch (e) {
       _error = e.toString();
     }

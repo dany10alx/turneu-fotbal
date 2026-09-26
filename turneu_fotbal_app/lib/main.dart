@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io' show Platform;
 
 import 'providers/team_provider.dart';
 import 'providers/match_provider.dart';
@@ -11,7 +13,16 @@ import 'screens/standings_screen.dart';
 import 'screens/knockout_screen.dart';
 import 'screens/about_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Pe Windows/Linux, sqflite are nevoie de implementarea FFI (nu vine
+  // inclusă implicit, ca pe Android/iOS).
+  if (Platform.isWindows || Platform.isLinux) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
   runApp(const TurneuFotbalApp());
 }
 
