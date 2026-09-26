@@ -5,6 +5,7 @@ import '../models/match.dart';
 import '../providers/knockout_provider.dart';
 import '../providers/team_provider.dart';
 import '../widgets/team_avatar.dart';
+import '../widgets/podium.dart';
 
 class KnockoutScreen extends StatefulWidget {
   const KnockoutScreen({super.key});
@@ -38,6 +39,28 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
       return null;
     }
     final winnerId = f.homeScore > f.awayScore ? f.homeTeamId : f.awayTeamId;
+    return _teamName(winnerId);
+  }
+
+  String? _runnerUpName(List<Match> matches) {
+    final finalMatches = matches.where((m) => m.round == 'final');
+    if (finalMatches.isEmpty) return null;
+    final f = finalMatches.first;
+    if (f.status != MatchStatus.finished || f.homeScore == f.awayScore) {
+      return null;
+    }
+    final loserId = f.homeScore > f.awayScore ? f.awayTeamId : f.homeTeamId;
+    return _teamName(loserId);
+  }
+
+  String? _thirdPlaceName(List<Match> matches) {
+    final thirdMatches = matches.where((m) => m.round == 'third_place');
+    if (thirdMatches.isEmpty) return null;
+    final t = thirdMatches.first;
+    if (t.status != MatchStatus.finished || t.homeScore == t.awayScore) {
+      return null;
+    }
+    final winnerId = t.homeScore > t.awayScore ? t.homeTeamId : t.awayTeamId;
     return _teamName(winnerId);
   }
 
@@ -212,6 +235,9 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
         match.status == MatchStatus.finished;
     final homeWon = isDecided && match.homeScore > match.awayScore;
     final awayWon = isDecided && match.awayScore > match.homeScore;
+    final notPlayedYet = match.status == MatchStatus.scheduled;
+    final homeScoreText = notPlayedYet ? '–' : '${match.homeScore}';
+    final awayScoreText = notPlayedYet ? '–' : '${match.awayScore}';
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -236,7 +262,7 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text('${match.homeScore}',
+                  Text(homeScoreText,
                       style:
                           TextStyle(fontWeight: homeWon ? FontWeight.bold : null)),
                 ],
@@ -255,7 +281,7 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text('${match.awayScore}',
+                  Text(awayScoreText,
                       style:
                           TextStyle(fontWeight: awayWon ? FontWeight.bold : null)),
                 ],
@@ -315,6 +341,8 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
           }
 
           final champion = _championName(provider.matches);
+          final runnerUp = _runnerUpName(provider.matches);
+          final thirdPlace = _thirdPlaceName(provider.matches);
           if (champion != null) {
             _maybeShowChampionDialog(champion);
           }
@@ -324,24 +352,11 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
               if (champion != null)
                 Container(
                   width: double.infinity,
-                  color: Colors.amber.shade100,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
-                      const SizedBox(width: 10),
-                      Flexible(
-                        child: Text(
-                          'Campion: $champion',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                  color: Colors.amber.shade50,
+                  child: Podium(
+                    first: champion,
+                    second: runnerUp,
+                    third: thirdPlace,
                   ),
                 ),
               Expanded(

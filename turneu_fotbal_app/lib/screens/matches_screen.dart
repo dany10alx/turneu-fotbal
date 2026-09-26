@@ -316,7 +316,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
         dense: true,
         leading: TeamAvatar(teamName: _teamName(match.homeTeamId), size: 26),
         title: Text(
-          '${_teamName(match.homeTeamId)} ${match.homeScore} - ${match.awayScore} ${_teamName(match.awayTeamId)}',
+          match.status == MatchStatus.scheduled
+              ? '${_teamName(match.homeTeamId)} vs ${_teamName(match.awayTeamId)}'
+              : '${_teamName(match.homeTeamId)} ${match.homeScore} - ${match.awayScore} ${_teamName(match.awayTeamId)}',
         ),
         trailing: IconButton(
           icon: const Icon(Icons.edit, size: 20),

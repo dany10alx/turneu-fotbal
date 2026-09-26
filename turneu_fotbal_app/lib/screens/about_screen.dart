@@ -100,6 +100,7 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             bullet('După fiecare scor decisiv introdus, meciul din runda următoare se generează automat, cu cei doi câștigători.'),
+            bullet('După ce se termină ambele semifinale, se generează automat și "finala mică" — meciul pentru locul 3, între cei doi perdanți din semifinale, afișat într-o coloană separată.'),
             bullet('Un egal nu avansează automat — introdu un scor decisiv (fără penalty-uri implementate).'),
             bullet('Când se termină finala, apare un mesaj special cu numele campionului.'),
             bullet('Poți șterge tabloul (iconița de coș) dacă vrei să-l regenerezi de la zero.'),
