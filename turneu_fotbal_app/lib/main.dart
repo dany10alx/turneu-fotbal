@@ -29,6 +29,14 @@ void main() async {
 class TurneuFotbalApp extends StatelessWidget {
   const TurneuFotbalApp({super.key});
 
+  /// Determină dacă aplicația rulează în modul Demo sau PRO.
+  /// Se poate transmite la build prin: `--dart-define=IS_DEMO=true`
+  /// Valoarea implicită este `false` (Versiunea PRO completă).
+  static const bool isDemo = bool.fromEnvironment(
+    'IS_DEMO',
+    defaultValue: false,
+  );
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(

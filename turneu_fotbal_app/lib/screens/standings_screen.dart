@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/standings_provider.dart';
@@ -18,15 +21,91 @@ class _StandingsScreenState extends State<StandingsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<StandingsProvider>();
-      provider.loadStandings(provider.selectedGroup);
+      if (mounted) {
+        final provider = context.read<StandingsProvider>();
+        provider.loadStandings(provider.selectedGroup);
+      }
     });
+  }
+
+  /// Funcție pentru generarea și printarea / exportul clasamentului în format PDF
+  Future<void> _printStandings() async {
+    final standingsProvider = context.read<StandingsProvider>();
+    final standings = standingsProvider.standings;
+
+    if (standings.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nu există clasament de printat.')),
+      );
+      return;
+    }
+
+    final pdf = pw.Document();
+    final groupName = standingsProvider.selectedGroup;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return [
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Clasament - $groupName',
+                    style: pw.TextStyle(
+                      fontSize: 22,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'Data: ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}',
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 16),
+            pw.TableHelper.fromTextArray(
+              headers: ['#', 'Echipă', 'J', 'V', 'E', 'Î', 'GM', 'GP', 'GD', 'Pct'],
+              data: standings.asMap().entries.map((entry) {
+                final pos = entry.key + 1;
+                final s = entry.value;
+                return [
+                  '$pos',
+                  s.name,
+                  '${s.played}',
+                  '${s.won}',
+                  '${s.drawn}',
+                  '${s.lost}',
+                  '${s.gf}',
+                  '${s.ga}',
+                  '${s.gd}',
+                  '${s.points}',
+                ];
+              }).toList(),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              cellAlignment: pw.Alignment.center,
+              cellAlignments: {
+                1: pw.Alignment.centerLeft, // Aliniere la stânga pentru numele echipei
+              },
+            ),
+          ];
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'Clasament_$groupName.pdf',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Grupele posibile: cele existente printre echipele adăugate,
-    // plus grupa curent selectată (dacă nu apare încă în listă).
     final teamGroups = context
         .watch<TeamProvider>()
         .teams
@@ -41,6 +120,13 @@ class _StandingsScreenState extends State<StandingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Clasament'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.print),
+            tooltip: 'Printează / Salvează PDF',
+            onPressed: _printStandings,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: Padding(
@@ -98,7 +184,8 @@ class _StandingsScreenState extends State<StandingsScreen> {
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: SegmentedButton<bool>(
                   segments: const [
                     ButtonSegment(value: true, label: Text('Complet')),

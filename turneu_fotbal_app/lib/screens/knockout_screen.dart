@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
 import '../models/match.dart';
 import '../providers/knockout_provider.dart';
 import '../providers/team_provider.dart';
-import '../widgets/team_avatar.dart';
 import '../widgets/podium.dart';
+import '../widgets/team_avatar.dart';
 
 class KnockoutScreen extends StatefulWidget {
   const KnockoutScreen({super.key});
@@ -62,6 +65,144 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
     }
     final winnerId = t.homeScore > t.awayScore ? t.homeTeamId : t.awayTeamId;
     return _teamName(winnerId);
+  }
+
+  /// Funcție pentru generarea și printarea / exportul fazei eliminatorii în format PDF
+  Future<void> _printBracket() async {
+    final provider = context.read<KnockoutProvider>();
+    final matches = provider.matches;
+
+    if (!provider.hasBracket || matches.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nu există tablou eliminatoriu de printat.')),
+      );
+      return;
+    }
+
+    final pdf = pw.Document();
+
+    // Organizează meciurile pe runde
+    final Map<String, List<Match>> byRound = {};
+    for (final match in matches) {
+      if (match.round == null) continue;
+      byRound.putIfAbsent(match.round!, () => []).add(match);
+    }
+
+    final roundsPresent = kRoundOrder.where(byRound.containsKey).toList();
+    for (final mList in byRound.values) {
+      mList.sort((a, b) => (a.bracketSlot ?? 0).compareTo(b.bracketSlot ?? 0));
+    }
+
+    final champion = _championName(matches);
+    final runnerUp = _runnerUpName(matches);
+    final thirdPlace = _thirdPlaceName(matches);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return [
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Fază Eliminatorie',
+                    style: pw.TextStyle(
+                      fontSize: 22,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'Data: ${DateTime.now().day}.${DateTime.now().month}.${DateTime.now().year}',
+                    style: const pw.TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 12),
+
+            // Secțiune Podium / Câștigători în PDF dacă există un campion
+            if (champion != null) ...[
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.amber100,
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'CLASAMENT FINAL',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Locul 1 (Campion): $champion'),
+                    if (runnerUp != null) pw.Text('Locul 2: $runnerUp'),
+                    if (thirdPlace != null) pw.Text('Locul 3: $thirdPlace'),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 16),
+            ],
+
+            // Meciuri organizate pe runde
+            ...roundsPresent.map((round) {
+              final roundMatches = byRound[round]!;
+              final roundTitle = kRoundDisplayNames[round] ?? round;
+
+              return pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Container(
+                    width: double.infinity,
+                    padding: const pw.EdgeInsets.symmetric(
+                        vertical: 6, horizontal: 8),
+                    color: PdfColors.grey300,
+                    child: pw.Text(
+                      roundTitle,
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  pw.SizedBox(height: 6),
+                  pw.TableHelper.fromTextArray(
+                    headers: ['Echipă Gazdă', 'Scor', 'Echipă Oaspete'],
+                    data: roundMatches.map((m) {
+                      final notPlayed = m.status == MatchStatus.scheduled;
+                      final homeName = _teamName(m.homeTeamId);
+                      final awayName = _teamName(m.awayTeamId);
+                      final score = notPlayed
+                          ? '–'
+                          : '${m.homeScore} - ${m.awayScore}';
+                      return [homeName, score, awayName];
+                    }).toList(),
+                    cellAlignment: pw.Alignment.center,
+                    cellAlignments: {
+                      0: pw.Alignment.centerLeft,
+                      2: pw.Alignment.centerRight,
+                    },
+                  ),
+                  pw.SizedBox(height: 14),
+                ],
+              );
+            }),
+          ];
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'Faza_Eliminatorie.pdf',
+    );
   }
 
   void _maybeShowChampionDialog(String championName) {
@@ -219,7 +360,8 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
                 Navigator.pop(context);
               } else if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Eroare la actualizarea scorului.')),
+                  const SnackBar(
+                      content: Text('Eroare la actualizarea scorului.')),
                 );
               }
             },
@@ -257,14 +399,17 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
                     child: Text(
                       _teamName(match.homeTeamId),
                       style: TextStyle(
-                        fontWeight: homeWon ? FontWeight.bold : FontWeight.normal,
+                        fontWeight:
+                            homeWon ? FontWeight.bold : FontWeight.normal,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text(homeScoreText,
-                      style:
-                          TextStyle(fontWeight: homeWon ? FontWeight.bold : null)),
+                  Text(
+                    homeScoreText,
+                    style: TextStyle(
+                        fontWeight: homeWon ? FontWeight.bold : null),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -276,14 +421,17 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
                     child: Text(
                       _teamName(match.awayTeamId),
                       style: TextStyle(
-                        fontWeight: awayWon ? FontWeight.bold : FontWeight.normal,
+                        fontWeight:
+                            awayWon ? FontWeight.bold : FontWeight.normal,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Text(awayScoreText,
-                      style:
-                          TextStyle(fontWeight: awayWon ? FontWeight.bold : null)),
+                  Text(
+                    awayScoreText,
+                    style: TextStyle(
+                        fontWeight: awayWon ? FontWeight.bold : null),
+                  ),
                 ],
               ),
             ],
@@ -299,6 +447,11 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
       appBar: AppBar(
         title: const Text('Fază eliminatorie'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.print),
+            tooltip: 'Printează / Salvează PDF',
+            onPressed: _printBracket,
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Șterge tabloul',
@@ -329,15 +482,16 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
             );
           }
 
-          // Grupăm meciurile pe rundă, în ordinea corectă (optimi -> ... -> finală).
           final Map<String, List<Match>> byRound = {};
           for (final match in provider.matches) {
             if (match.round == null) continue;
             byRound.putIfAbsent(match.round!, () => []).add(match);
           }
-          final roundsPresent = kRoundOrder.where(byRound.containsKey).toList();
+          final roundsPresent =
+              kRoundOrder.where(byRound.containsKey).toList();
           for (final matches in byRound.values) {
-            matches.sort((a, b) => (a.bracketSlot ?? 0).compareTo(b.bracketSlot ?? 0));
+            matches.sort((a, b) =>
+                (a.bracketSlot ?? 0).compareTo(b.bracketSlot ?? 0));
           }
 
           final champion = _championName(provider.matches);
@@ -364,35 +518,37 @@ class _KnockoutScreenState extends State<KnockoutScreen> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-              children: roundsPresent.map((round) {
-                final matches = byRound[round]!;
-                return Container(
-                  width: 260,
-                  margin: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(8),
+                    children: roundsPresent.map((round) {
+                      final matches = byRound[round]!;
+                      return Container(
+                        width: 260,
+                        margin: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                kRoundDisplayNames[round] ?? round,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            ...matches.map(_buildMatchCard),
+                          ],
                         ),
-                        child: Text(
-                          kRoundDisplayNames[round] ?? round,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      ...matches.map(_buildMatchCard),
-                    ],
-                  ),
-                );
-              }).toList(),
+                      );
+                    }).toList(),
                   ),
                 ),
               ),

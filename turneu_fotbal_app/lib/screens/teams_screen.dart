@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/team_provider.dart';
+import '../services/print_service.dart';
 import '../widgets/team_avatar.dart';
 
 class TeamsScreen extends StatefulWidget {
@@ -88,8 +89,10 @@ class _TeamsScreenState extends State<TeamsScreen> {
         color: Theme.of(context).colorScheme.errorContainer,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: Icon(Icons.delete,
-            color: Theme.of(context).colorScheme.onErrorContainer),
+        child: Icon(
+          Icons.delete,
+          color: Theme.of(context).colorScheme.onErrorContainer,
+        ),
       ),
       confirmDismiss: (_) async {
         return await showDialog<bool>(
@@ -131,7 +134,19 @@ class _TeamsScreenState extends State<TeamsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Echipe')),
+      appBar: AppBar(
+        title: const Text('Echipe'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.print),
+            tooltip: 'Printează echipele',
+            onPressed: () {
+              final teams = context.read<TeamProvider>().teams;
+              PrintService.printTeams(context, teams);
+            },
+          ),
+        ],
+      ),
       body: Consumer<TeamProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.teams.isEmpty) {
@@ -178,7 +193,8 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     margin: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant),
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -186,13 +202,16 @@ class _TeamsScreenState extends State<TeamsScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Theme.of(context)
                                 .colorScheme
                                 .secondaryContainer,
                             borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(12)),
+                              top: Radius.circular(12),
+                            ),
                           ),
                           child: Text(
                             '$groupName (${teamsInGroup.length})',
@@ -202,8 +221,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ),
-                        ...teamsInGroup
-                            .map((team) => _buildTeamTile(context, provider, team)),
+                        ...teamsInGroup.map(
+                          (team) => _buildTeamTile(context, provider, team),
+                        ),
                       ],
                     ),
                   );
