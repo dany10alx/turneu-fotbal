@@ -375,47 +375,63 @@ class _MatchesScreenState extends State<MatchesScreen> {
           }
           final sortedGroupNames = byGroup.keys.toList()..sort();
 
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: sortedGroupNames.map((groupName) {
-                final matchesInGroup = byGroup[groupName]!;
-                return Container(
-                  width: 320,
-                  margin: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                    children: sortedGroupNames.map((groupName) {
+                      final matchesInGroup = byGroup[groupName]!;
+                      return Container(
+                        width: 320,
+                        margin: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color:
-                              Theme.of(context).colorScheme.secondaryContainer,
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(12)),
+                          border: Border.all(
+                              color: Theme.of(context).colorScheme.outlineVariant),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(
-                          '$groupName (${matchesInGroup.length})',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .secondaryContainer,
+                                borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(12)),
+                              ),
+                              child: Text(
+                                '$groupName (${matchesInGroup.length})',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            // Scroll vertical propriu, pentru cazul cu multe
+                            // meciuri într-o grupă.
+                            Expanded(
+                              child: ListView.builder(
+                                itemCount: matchesInGroup.length,
+                                itemBuilder: (context, index) =>
+                                    _buildMatchTile(
+                                        context, provider, matchesInGroup[index]),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      ...matchesInGroup
-                          .map((match) => _buildMatchTile(context, provider, match)),
-                    ],
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
-            ),
+                ),
+              ),
+            ],
           );
         },
       ),

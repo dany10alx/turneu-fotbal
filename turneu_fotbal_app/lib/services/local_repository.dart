@@ -249,9 +249,17 @@ class LocalRepository {
       if (ranked.isNotEmpty) winners.add(ranked[0]);
       if (ranked.length > 1) runnersUp.add(ranked[1]);
     }
-    winners.sort(sortCompare);
-    runnersUp.sort(sortCompare);
-    final guaranteed = [...winners, ...runnersUp];
+
+    // Perechi "cruciate": locul 1 din grupa i joacă cu locul 2 din grupa
+    // următoare (ciclic), ca două echipe din aceeași grupă să nu se
+    // întâlnească deja în prima rundă eliminatorie.
+    // Ex: 1A-2B, 1B-2A (2 grupe) sau 1A-2B, 1B-2C, 1C-2A (3 grupe).
+    final crossPairs = <List<Team>>[];
+    for (var i = 0; i < winners.length; i++) {
+      final home = winners[i]['team'] as Team;
+      final away = runnersUp[(i + 1) % runnersUp.length]['team'] as Team;
+      crossPairs.add([home, away]);
+    }
 
     // Pool de rezervă: locurile 3, 4, ... din fiecare grupă.
     final pool = <MapEntry<int, Map<String, dynamic>>>[];
@@ -265,7 +273,7 @@ class LocalRepository {
       return sortCompare(a.value, b.value);
     });
 
-    final neededExtra = bracketSize - guaranteed.length;
+    final neededExtra = bracketSize - (winners.length + runnersUp.length);
     if (neededExtra < 0) {
       throw ApiException('Prea multe echipe calificate direct pentru mărimea tabloului.');
     }
@@ -274,17 +282,33 @@ class LocalRepository {
     }
 
     final wildcards = pool.take(neededExtra).map((e) => e.value).toList();
-    final seedOrder = [...guaranteed, ...wildcards];
+
+    // Perechile de rezervă (locurile 3/4) se împerechează între ele, cel
+    // mai bun cu cel mai slab. Evităm, unde e posibil, ca două echipe din
+    // aceeași grupă să ajungă perechi.
+    final wildcardPairs = <List<Team>>[];
+    final n = wildcards.length;
+    for (var i = 0; i < n ~/ 2; i++) {
+      final home = wildcards[i]['team'] as Team;
+      final away = wildcards[n - 1 - i]['team'] as Team;
+      wildcardPairs.add([home, away]);
+    }
+    for (var i = 0; i < wildcardPairs.length - 1; i++) {
+      if (wildcardPairs[i][0].groupName == wildcardPairs[i][1].groupName) {
+        final tmp = wildcardPairs[i][1];
+        wildcardPairs[i][1] = wildcardPairs[i + 1][1];
+        wildcardPairs[i + 1][1] = tmp;
+      }
+    }
+
+    final allPairs = [...crossPairs, ...wildcardPairs];
 
     final newMatches = <Match>[];
-    final numMatches = bracketSize ~/ 2;
-    for (var i = 0; i < numMatches; i++) {
-      final homeTeam = (seedOrder[i]['team'] as Team);
-      final awayTeam = (seedOrder[bracketSize - 1 - i]['team'] as Team);
+    for (var i = 0; i < allPairs.length; i++) {
       final match = Match(
         id: _uuid.v4(),
-        homeTeamId: homeTeam.id,
-        awayTeamId: awayTeam.id,
+        homeTeamId: allPairs[i][0].id,
+        awayTeamId: allPairs[i][1].id,
         homeScore: 0,
         awayScore: 0,
         status: MatchStatus.scheduled,

@@ -12,6 +12,8 @@ class StandingsScreen extends StatefulWidget {
 }
 
 class _StandingsScreenState extends State<StandingsScreen> {
+  bool _fullView = true;
+
   @override
   void initState() {
     super.initState();
@@ -93,42 +95,93 @@ class _StandingsScreenState extends State<StandingsScreen> {
             );
           }
 
-          return SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Echipă')),
-                DataColumn(label: Text('J'), numeric: true),
-                DataColumn(label: Text('V'), numeric: true),
-                DataColumn(label: Text('E'), numeric: true),
-                DataColumn(label: Text('Î'), numeric: true),
-                DataColumn(label: Text('GM'), numeric: true),
-                DataColumn(label: Text('GP'), numeric: true),
-                DataColumn(label: Text('GD'), numeric: true),
-                DataColumn(label: Text('Pct'), numeric: true),
-              ],
-              rows: standingsProvider.standings
-                  .map(
-                    (s) => DataRow(cells: [
-                      DataCell(Text(s.name)),
-                      DataCell(Text('${s.played}')),
-                      DataCell(Text('${s.won}')),
-                      DataCell(Text('${s.drawn}')),
-                      DataCell(Text('${s.lost}')),
-                      DataCell(Text('${s.gf}')),
-                      DataCell(Text('${s.ga}')),
-                      DataCell(Text('${s.gd}')),
-                      DataCell(Text(
-                        '${s.points}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      )),
-                    ]),
-                  )
-                  .toList(),
-            ),
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: true, label: Text('Complet')),
+                    ButtonSegment(value: false, label: Text('Pe scurt')),
+                  ],
+                  selected: {_fullView},
+                  onSelectionChanged: (selection) {
+                    setState(() => _fullView = selection.first);
+                  },
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: _fullView
+                      ? _buildFullTable(standingsProvider)
+                      : _buildShortTable(standingsProvider),
+                ),
+              ),
+            ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildFullTable(StandingsProvider standingsProvider) {
+    return DataTable(
+      columns: const [
+        DataColumn(label: Text('#')),
+        DataColumn(label: Text('Echipă')),
+        DataColumn(label: Text('J'), numeric: true),
+        DataColumn(label: Text('V'), numeric: true),
+        DataColumn(label: Text('E'), numeric: true),
+        DataColumn(label: Text('Î'), numeric: true),
+        DataColumn(label: Text('GM'), numeric: true),
+        DataColumn(label: Text('GP'), numeric: true),
+        DataColumn(label: Text('GD'), numeric: true),
+        DataColumn(label: Text('Pct'), numeric: true),
+      ],
+      rows: standingsProvider.standings.asMap().entries.map((entry) {
+        final pos = entry.key + 1;
+        final s = entry.value;
+        return DataRow(cells: [
+          DataCell(Text('$pos')),
+          DataCell(Text(s.name)),
+          DataCell(Text('${s.played}')),
+          DataCell(Text('${s.won}')),
+          DataCell(Text('${s.drawn}')),
+          DataCell(Text('${s.lost}')),
+          DataCell(Text('${s.gf}')),
+          DataCell(Text('${s.ga}')),
+          DataCell(Text('${s.gd}')),
+          DataCell(Text(
+            '${s.points}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          )),
+        ]);
+      }).toList(),
+    );
+  }
+
+  Widget _buildShortTable(StandingsProvider standingsProvider) {
+    return DataTable(
+      columns: const [
+        DataColumn(label: Text('#')),
+        DataColumn(label: Text('Echipă')),
+        DataColumn(label: Text('GD'), numeric: true),
+        DataColumn(label: Text('Pct'), numeric: true),
+      ],
+      rows: standingsProvider.standings.asMap().entries.map((entry) {
+        final pos = entry.key + 1;
+        final s = entry.value;
+        return DataRow(cells: [
+          DataCell(Text('$pos')),
+          DataCell(Text(s.name)),
+          DataCell(Text('${s.gd}')),
+          DataCell(Text(
+            '${s.points}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          )),
+        ]);
+      }).toList(),
     );
   }
 }
